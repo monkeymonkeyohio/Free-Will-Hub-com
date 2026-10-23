@@ -19,7 +19,7 @@
     ];
 
     let sessionHistory = JSON.parse(localStorage.getItem('aufw-session-history')) || [];
-    let panicConfig = JSON.parse(localStorage.getItem('aufw-panic')) || { key: '`', url: 'https://classroom.google.com/h' };
+    let panicConfig = JSON.parse(localStorage.getItem('aufw-panic')) || { key: '~', url: 'https://classroom.google.com/h' };
     let activeAccent = localStorage.getItem('aufw-accent') || '#6366f1';
     let soundEnabled = localStorage.getItem('aufw-sound') === 'true';
     let blurIntensity = localStorage.getItem('aufw-blur') || '20';
