@@ -7,14 +7,14 @@
     let bookmarks = JSON.parse(localStorage.getItem('aufw-bookmarks')) || [
         { name: 'Google', url: 'google.com' },
         { name: 'YouTube', url: 'https://utubedc.base44.app' },
-        { name: 'Discord', url: 'discord.com' },
+        { name: 'Discord', url: 'https://dachat.base44.app/' },
         { name: 'GitHub', url: 'github.com' }
     ];
 
     let speedDialTiles = JSON.parse(localStorage.getItem('aufw-speeddial-tiles')) || [
         { label: 'DuckDuckGo', url: 'https://lite.duckduckgo.com/', icon: '🦆' },
         { label: 'YouTube', url: 'https://utubedc.base44.app', icon: '▶' },
-        { label: 'Discord', url: 'discord.com', icon: '💬' },
+        { label: 'Discord', url: 'https://dachat.base44.app/', icon: '💬' },
         { label: 'GitHub', url: 'github.com', icon: '💻' }
     ];
 
