@@ -26,14 +26,13 @@
     let baseOpacity = localStorage.getItem('aufw-base-opacity') || '1';
     let autoGhostEnabled = localStorage.getItem('aufw-auto-ghost') === 'true';
 
-    // Internal Tabs State
-    let tabs = [{ id: 'tab-1', title: 'New Tab', url: '', history: [], historyIndex: -1 }];
+    // Internal Tabs State - ADDED isProxied default
+    let tabs = [{ id: 'tab-1', title: 'New Tab', url: '', history: [], historyIndex: -1, isProxied: true }];
     let activeTabId = 'tab-1';
 
     // Cleanup existing instance
-    if (document.getElementById('aufw-proxy-root')) {
-        document.getElementById('aufw-proxy-root').remove();
-    }
+    if (document.getElementById('aufw-proxy-root')) document.getElementById('aufw-proxy-root').remove();
+    if (document.getElementById('fwh-tab-ctx')) document.getElementById('fwh-tab-ctx').remove();
 
     const root = document.createElement('div');
     root.id = 'aufw-proxy-root';
@@ -56,7 +55,7 @@
             width: 900px; height: 620px; background: rgba(11, 13, 20, 0.92);
             backdrop-filter: blur(var(--fwh-blur)); border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 14px; box-shadow: 0 30px 70px -10px rgba(0, 0, 0, 0.85), 0 0 30px var(--fwh-accent-glow);
-            z-index: 9999999; display: flex; flex-direction: row; overflow: hidden; resize: both;
+            z-index: 9999998; display: flex; flex-direction: row; overflow: hidden; resize: both;
             min-width: 560px; min-height: 420px; font-family: 'Inter', sans-serif;
             transition: opacity 0.4s ease, border-radius 0.25s ease;
         }
@@ -181,11 +180,17 @@
 
         #aufw-proxy-root.minimized .fwh-sidebar, #aufw-proxy-root.minimized .fwh-content-wrap { display: none !important; }
         #aufw-proxy-root.minimized .fwh-minimized-icon { display: block !important; }
+
+        /* Context Menu for Tabs */
+        .fwh-context-menu { position: fixed; background: #131622; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 9999999; display: none; flex-direction: column; min-width: 150px; font-family: 'Inter', sans-serif; }
+        .fwh-context-menu.active { display: flex; }
+        .fwh-ctx-item { padding: 10px 12px; color: #cbd5e1; font-size: 12px; cursor: pointer; border-radius: 6px; font-weight: 500; display: flex; align-items: center; justify-content: space-between; }
+        .fwh-ctx-item:hover { background: var(--fwh-accent-subtle); color: #fff; }
+        .fwh-proxy-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.1); }
     `;
 
     root.innerHTML = `
         <div class="fwh-sidebar">
-            <!-- Ensure img is not draggable -->
             <img src="https://i.ibb.co/8gx87ScN/Proxy-Logo.png" class="fwh-logo" id="fwh-logo-btn" title="Free Will Hub V2.6.5" draggable="false">
             <div class="fwh-nav-group">
                 <div class="fwh-nav-item active" data-tab="browser" title="Browser">&#127760;</div>
@@ -312,6 +317,8 @@
                             <option value="classroom">Google Classroom</option>
                             <option value="docs">Google Docs</option>
                             <option value="drive">Google Drive</option>
+                            <!-- NEW CLOAKER OPTION HERE -->
+                            <option value="portal">Student Portal</option>
                         </select>
                     </div>
                     
@@ -336,8 +343,15 @@
         </div>
     `;
 
+    // Context Menu for right click tabs
+    const ctxMenu = document.createElement('div');
+    ctxMenu.className = 'fwh-context-menu';
+    ctxMenu.id = 'fwh-tab-ctx';
+    ctxMenu.innerHTML = `<div class="fwh-ctx-item" id="fwh-ctx-toggle"><span>Proxy Active</span><span class="fwh-proxy-badge" id="fwh-proxy-badge-text">ON</span></div>`;
+
     document.head.appendChild(style);
     document.body.appendChild(root);
+    document.body.appendChild(ctxMenu);
 
     // --- DOM References ---
     const frame = document.getElementById('aufw-frame');
@@ -406,6 +420,8 @@
         if (val === 'classroom') { document.title = 'Home - Classroom'; changeFavicon('https://ssl.gstatic.com/classroom/favicon.png'); }
         else if (val === 'docs') { document.title = 'Google Docs'; changeFavicon('https://ssl.gstatic.com/docs/documents/images/kix-favicon7.ico'); }
         else if (val === 'drive') { document.title = 'My Drive'; changeFavicon('https://ssl.gstatic.com/images/branding/product/1x/drive_2020q4_32dp.png'); }
+        // NEW PORTAL CLOAKER HANDLER
+        else if (val === 'portal') { document.title = 'Student MyPortal'; changeFavicon('https://sites.google.com/sitesv-images-rt/AMxu72vWYicC5IWX9ZSorwl6xvZ_5FHRWKRZ7v96i86HNyNUn_bBbD-GwucP532SoDiNIBsOImj3EyTRT0_bjC8drcUFx6SqPDnLCwKXi8FvryAETZHKrsAef_0hhf-pHgOB6UPiRXRWYq5AimRx05WZ54uqrHCeRIU7sqZ8VWU=w16383'); }
     };
     function changeFavicon(src) {
         let link = document.querySelector("link[rel*='icon']") || document.createElement('link');
@@ -479,12 +495,32 @@
         if (sessionHistory.length === 0) { historyList.innerHTML = '<div style="color: #64748b; font-size: 12px;">No history recorded yet.</div>'; return; }
         sessionHistory.forEach(item => {
             const row = document.createElement('div'); row.className = 'fwh-card'; row.style.cursor = 'pointer';
-            row.innerHTML = `<div class="fwh-card-info"><h4>item.url</h4><p>{item.timestamp}</p></div><button class="fwh-btn" style="padding: 4px 10px; font-size: 11px;">Launch</button>`;
+            // FIXED TEMPLATE LITERAL SYNTAX HERE
+            row.innerHTML = `<div class="fwh-card-info"><h4>${item.url}</h4><p>${item.timestamp}</p></div><button class="fwh-btn" style="padding: 4px 10px; font-size: 11px;">Launch</button>`;
             row.onclick = () => { navItems[0].click(); loadUrl(item.url); };
             historyList.appendChild(row);
         });
     }
     document.getElementById('fwh-clear-history-btn').onclick = () => { playUiSound(); sessionHistory = []; localStorage.removeItem('aufw-session-history'); renderHistory(); };
+
+    // --- Proxy Context Menu Logic ---
+    document.addEventListener('click', (e) => {
+        if (!ctxMenu.contains(e.target)) ctxMenu.classList.remove('active');
+    });
+
+    document.getElementById('fwh-ctx-toggle').addEventListener('click', () => {
+        const targetId = ctxMenu.dataset.targetTab;
+        const tab = tabs.find(t => t.id === targetId);
+        if (tab) {
+            tab.isProxied = !tab.isProxied;
+            if (activeTabId === targetId && tab.url) {
+                loader.classList.add('active');
+                frame.src = tab.isProxied ? getFormattedUrl(tab.url) : tab.url;
+            }
+            renderSubTabs();
+        }
+        ctxMenu.classList.remove('active');
+    });
 
     // --- Multi-Tab Internal Navigation Engine ---
     function renderSubTabs() {
@@ -492,20 +528,41 @@
         tabs.forEach(tab => {
             const tabEl = document.createElement('div');
             tabEl.className = `fwh-tab-item ${tab.id === activeTabId ? 'active' : ''}`;
-            tabEl.innerHTML = `<span class="fwh-tab-title">${tab.title}</span><span class="fwh-tab-close">&times;</span>`;
+            // If tab is unproxied, show orange text
+            tabEl.innerHTML = `<span class="fwh-tab-title" style="color: ${tab.isProxied ? 'inherit' : '#f59e0b'}">${tab.title}</span><span class="fwh-tab-close">&times;</span>`;
+            
             tabEl.onclick = () => switchSubTab(tab.id);
             tabEl.querySelector('.fwh-tab-close').onclick = (e) => { e.stopPropagation(); closeSubTab(tab.id); };
+            
+            // CONTEXT MENU EVENT LISTENER (RIGHT CLICK)
+            tabEl.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                switchSubTab(tab.id);
+                ctxMenu.style.left = e.clientX + 'px';
+                ctxMenu.style.top = e.clientY + 'px';
+                ctxMenu.classList.add('active');
+                ctxMenu.dataset.targetTab = tab.id;
+                
+                const badge = document.getElementById('fwh-proxy-badge-text');
+                badge.innerText = tab.isProxied ? 'ON' : 'OFF';
+                badge.style.color = tab.isProxied ? '#10b981' : '#f43f5e';
+            });
+
             tabsContainer.insertBefore(tabEl, addTabBtn);
         });
     }
+    
     function switchSubTab(id) {
         playUiSound(); activeTabId = id; renderSubTabs();
         const curTab = tabs.find(t => t.id === id);
         if (!curTab.url) { speedDial.classList.remove('hidden'); input.value = ''; frame.src = 'about:blank'; }
-        else { speedDial.classList.add('hidden'); input.value = curTab.url; frame.src = getFormattedUrl(curTab.url); }
+        else { speedDial.classList.add('hidden'); input.value = curTab.url; frame.src = curTab.isProxied ? getFormattedUrl(curTab.url) : curTab.url; }
         updateNavButtons();
     }
-    function createSubTab(url = '') { playUiSound(); const id = 'tab-' + Date.now(); tabs.push({ id, title: url || 'New Tab', url, history: url ? [url] : [], historyIndex: url ? 0 : -1 }); switchSubTab(id); }
+    
+    // NEW TABS DEFAULT TO isProxied: true
+    function createSubTab(url = '') { playUiSound(); const id = 'tab-' + Date.now(); tabs.push({ id, title: url || 'New Tab', url, history: url ? [url] : [], historyIndex: url ? 0 : -1, isProxied: true }); switchSubTab(id); }
+    
     function closeSubTab(id) { playUiSound(); if (tabs.length === 1) return; tabs = tabs.filter(t => t.id !== id); if (activeTabId === id) activeTabId = tabs[tabs.length - 1].id; renderSubTabs(); switchSubTab(activeTabId); }
     addTabBtn.onclick = () => createSubTab('');
 
@@ -514,7 +571,8 @@
         speedDialGrid.innerHTML = '';
         speedDialTiles.forEach((tile, index) => {
             const card = document.createElement('div'); card.className = 'fwh-speeddial-card';
-            card.innerHTML = `<span class="fwh-speeddial-del">&times;</span><div class="fwh-speeddial-icon">tile.icon||'🌐'</div><divclass="fwh-speeddial-label">{tile.label}</div>`;
+            // FIXED TEMPLATE LITERAL SYNTAX HERE
+            card.innerHTML = `<span class="fwh-speeddial-del">&times;</span><div class="fwh-speeddial-icon">${tile.icon||'🌐'}</div><div class="fwh-speeddial-label">${tile.label}</div>`;
             card.onclick = () => { playUiSound(); loadUrl(tile.url); };
             card.querySelector('.fwh-speeddial-del').onclick = (e) => { e.stopPropagation(); speedDialTiles.splice(index, 1); localStorage.setItem('aufw-speeddial-tiles', JSON.stringify(speedDialTiles)); renderSpeedDial(); };
             speedDialGrid.appendChild(card);
@@ -560,7 +618,10 @@
 
         curTab.url = rawUrl; curTab.title = rawUrl.replace(/^https?:\/\//, '').split('/')[0];
         if (!isHistoryNav) { curTab.history = curTab.history.slice(0, curTab.historyIndex + 1); curTab.history.push(rawUrl); curTab.historyIndex++; recordHistory(rawUrl); }
-        renderSubTabs(); updateNavButtons(); input.value = rawUrl; speedDial.classList.add('hidden'); loader.classList.add('active'); frame.src = getFormattedUrl(rawUrl);
+        renderSubTabs(); updateNavButtons(); input.value = rawUrl; speedDial.classList.add('hidden'); loader.classList.add('active');
+        
+        // CHECK IF TAB IS PROXIED
+        frame.src = curTab.isProxied ? getFormattedUrl(rawUrl) : rawUrl;
     }
 
     document.getElementById('aufw-go').onclick = () => { playUiSound(); loadUrl(input.value.trim()); };
@@ -603,7 +664,7 @@
     };
 
     // --- Window Controls & Dragging Engine ---
-    document.getElementById('aufw-close').onclick = () => { playUiSound(); root.remove(); style.remove(); };
+    document.getElementById('aufw-close').onclick = () => { playUiSound(); root.remove(); style.remove(); ctxMenu.remove(); };
     document.getElementById('aufw-full').onclick = () => { playUiSound(); root.classList.toggle('fullscreen'); };
     document.getElementById('aufw-min').onclick = (e) => { playUiSound(); e.stopPropagation(); root.classList.remove('fullscreen', 'ghost-active'); root.classList.add('minimized'); };
     document.getElementById('aufw-opacity').oninput = (e) => { baseOpacity = e.target.value; localStorage.setItem('aufw-base-opacity', baseOpacity); root.style.opacity = baseOpacity; };
@@ -640,5 +701,3 @@
         if (!hasMoved) { playUiSound(); root.classList.remove('minimized', 'ghost-active'); }
     });
 })();
-
-
